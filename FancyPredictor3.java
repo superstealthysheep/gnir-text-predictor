@@ -8,7 +8,7 @@ import java.io.*;
 import java.lang.StringBuilder;
 import java.util.Stack;
 
-public class FancyPredictor2 {
+public class FancyPredictor3 {
     public static void main(String[] args) throws Exception {
         YummyArray<Character> alphabet = new YummyArray<Character>();
         // char[] letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ".toCharArray();
@@ -17,9 +17,10 @@ public class FancyPredictor2 {
         // char[] letters = "cG".toCharArray();
         for (char l : letters) alphabet.add(l);
 
+        // char[] input = "ccGGGGGccGGGcGcccGcGGGGGGcGGGcG".toCharArray();
         // char[] input = "JOHN THE CAT WENT TO THE STORE AND BOUGHT EIGHTEEN DOLLARS OF BREAD TO FEED TO HIS DOG NAMED JIM AND JIM ATE THE BREAD AND THEN JOHN THE CAT DECIDED TO REFLECT ON HIS LIFE UP UNTIL THAT POINT AND SO HE WENT ON A LONG JOURNEY TO THE MOUNTAINS AT THE EDGE OF THE WORLD WHERE A GREAT SAGE TOLD JOHN THE CAT THAT HE PROBABLY SHOULD NOT HAVE ABANDONED JIM THE DOG AT HIS HOME AND COME TO THIS LONELY MOUNTAIN THEN JOHN THE CAT WEPT AND SOBBED AND CRIED THE END".toCharArray();
         BufferedReader br =  new BufferedReader(new FileReader("01 - The Fellowship Of The Ring.txt"));
-        // final int BUF_SIZE = 10_000;
+        // // final int BUF_SIZE = 10_000;
         StringBuilder sb = new StringBuilder();
         while(br.ready()) {
             char c = (char) br.read();
@@ -30,32 +31,41 @@ public class FancyPredictor2 {
         br.close();
         char[] input = sb.toString().toUpperCase().toCharArray();
         
-        // char[] input = """
-// """.toUpperCase().toCharArray();
-        // char[] input = "ccGGGGGccGGGcGcccGcGGGGGGcGGGcG".toCharArray();
-
-        int contextSize = 13;
+        int contextSize = 3;
         Tensor weights = populateTensor(input, alphabet, contextSize);
-
-        
+        Tensor evenWeights = new Tensor(contextSize, alphabet.size); // completely unpopulated, means even probability
 
         // print tensor
         // System.out.println(weights.toString());
         
-        // System.out.println(score(input, weights, alphabet));
+        // System.out.println("Source: " + String.valueOf(input));
+        System.out.println("Source T score: " + score(input, weights, alphabet));
+        System.out.println("Source U score: " + score(input, evenWeights, alphabet));
 
         // char[] seed = new char[contextSize-1];
-        char[] seed = "DURIN'S BANE".toCharArray();
+        char[] seed = "RI".toCharArray();
+        System.out.print("Output: ");
         System.out.print(seed);
-        for (int i = 0; i < 10000; i++) {
+        StringBuilder output = new StringBuilder();
+        for (int i = 0; i < 1000; i++) {
             char next = nextChar(seed, weights, alphabet);
-            System.out.print(next);
+            // System.out.print(next);
+            output.append(next);
 
             for (int j = 0; j < contextSize-2; j++) {
                 seed[j] = seed[j+1];
             }
             seed[contextSize-2] = next;
         }
+        System.out.println(output);
+
+        System.out.println("Output T score: " + score(output.toString().toCharArray(), weights, alphabet));
+        System.out.println("Output U score: " + score(output.toString().toCharArray(), evenWeights, alphabet));
+
+        char[] sample = "WEEP SEEP SLEEP SHEEP LEAP ONCE UPON A TIME THERE LIVED A CAT NAMED JOHN. HE SOUGHT THE ONE RING BUT WAS CORRUPTED BY ITS POWER. THEN HE DID BAD STUFF AND STUFF THE END. JUST KIDDING, THEN HIS FRIEND JIM THE DOG SHOWED UP AND WAS SAD AND WEPT AND SOBBED AND CRIED AT HOW FAR HIS FRIEND HAD FALLEN THE END.".toCharArray();
+        System.out.println("\"Sample\": " + String.valueOf(sample));
+        System.out.println("Sample T score: " + score(sample, weights, alphabet));
+        System.out.println("Sample U score: " + score(sample, evenWeights, alphabet));
     }
 
     private static class Tensor { // now it's a sparse array/tree!
@@ -93,17 +103,6 @@ public class FancyPredictor2 {
         }
 
         public boolean hasSubarray(int[] indices) throws TensorException {
-            // if (indices.length > dimension) {
-            //     throw new TensorException("Index depth " + indices.length + " is deeper than tensor dimension " + dimension);
-            // }
-            // Tensor ptr = this;
-            // for (int idx : indices) {
-            //     Tensor child = ptr.array[idx];
-            //     if (child == null) {
-            //         return false;
-            //     }
-            // }
-            // return true;
             return (getSubarray(indices) != null);
         }
 
@@ -315,10 +314,27 @@ public class FancyPredictor2 {
                     throw new Exception("Encountered foreign character " + symbol + " at position " + pos);
                 }
             }
-            float prob = weights.getValue(index);
-            prob = (Float.isNaN(prob) ? 1f / alphabet.size : prob); // if column found, default even probability
+            
+            // get the index for the column too (hacky code but I'm in a rush)
+            int[] contextIndex = Arrays.copyOfRange(index, 0, contextSize-1); // just `indices` with the last index ommitted
 
-            score += Math.log(weights.getValue(index))/Math.log(2);
+            Tensor column = weights.getSubarray(contextIndex);
+            float prob;
+            if (column != null) {
+                prob = weights.getValue(index);
+                if (Float.isNaN(prob)) { // a valid column but a NaN means this completion has probability 0
+                    prob = 0; // this is very bad though
+                    System.err.print("Encountered zero-probability completion! Score will explode now.");
+                    System.out.println("Position: " + String.valueOf(pos));
+                }
+            } else { // if the column is never logged, default to the even probability distribution
+                prob = 1f / alphabet.size;
+            }
+
+            // float prob = weights.getValue(index);
+            // prob = (Float.isNaN(prob) ? 1f / alphabet.size : prob); // if column found, default even probability
+
+            score += Math.log(prob)/Math.log(2);
         }
 
         return score;

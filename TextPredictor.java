@@ -3,12 +3,12 @@ import java.lang.Math;
 public class TextPredictor {
     public static void main(String[] args) throws Exception {
         YummyArray<Character> alphabet = new YummyArray<Character>();
-        char[] letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ".toCharArray();
-        // char[] letters = "cG".toCharArray();
+        // char[] letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ".toCharArray();
+        char[] letters = "cG".toCharArray();
         for (char l : letters) alphabet.add(l);
 
-        char[] input = "JOHN THE CAT WENT TO THE STORE AND BOUGHT EIGHTEEN DOLLARS OF BREAD TO FEED TO HIS DOG NAMED JIM AND JIM ATE THE BREAD AND THEN JOHN THE CAT DECIDED TO REFLECT ON HIS LIFE UP UNTIL THAT POINT AND SO HE WENT ON A LONG JOURNEY TO THE MOUNTAINS AT THE EDGE OF THE WORLD WHERE A GREAT SAGE TOLD JOHN THE CAT THAT HE PROBABLY SHOULD NOT HAVE ABANDONED JIM THE DOG AT HIS HOME AND COME TO THIS LONELY MOUNTAIN THEN JOHN THE CAT WEPT AND SOBBED AND CRIED THE END".toCharArray();
-        // char[] input = "ccGGGGGccGGGcGcccGcGGGGGGcGGGcG".toCharArray();
+        // char[] input = "JOHN THE CAT WENT TO THE STORE AND BOUGHT EIGHTEEN DOLLARS OF BREAD TO FEED TO HIS DOG NAMED JIM AND JIM ATE THE BREAD AND THEN JOHN THE CAT DECIDED TO REFLECT ON HIS LIFE UP UNTIL THAT POINT AND SO HE WENT ON A LONG JOURNEY TO THE MOUNTAINS AT THE EDGE OF THE WORLD WHERE A GREAT SAGE TOLD JOHN THE CAT THAT HE PROBABLY SHOULD NOT HAVE ABANDONED JIM THE DOG AT HIS HOME AND COME TO THIS LONELY MOUNTAIN THEN JOHN THE CAT WEPT AND SOBBED AND CRIED THE END".toCharArray();
+        char[] input = "ccGGGGGccGGGcGcccGcGGGGGGcGGGcG".toCharArray();
         float[][][] weights = populateTensor(input, alphabet);
 
         // print tensor
@@ -21,11 +21,15 @@ public class TextPredictor {
         // }
 
         // System.out.println(score(input, weights, alphabet));
+        // print tensor
+        System.out.println(weights.toString());
+        
+        System.out.println(score(input, weights, alphabet));
 
         char[] seed = new char[2];
-        seed = "JO".toCharArray();
+        seed = "cc".toCharArray();
         System.out.print(seed);
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 10; i++) {
             char next = nextChar(seed, weights, alphabet);
             System.out.print(next);
             seed[0] = seed[1];
